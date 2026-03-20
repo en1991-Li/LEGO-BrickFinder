@@ -110,6 +110,21 @@
             const imgUrl = data.set_img_url || 'https://via.placeholder.com/600x400?text=No+Image+Available';
             document.getElementById('legoImg').src = imgUrl;
 
+            const resultContainer = document.getElementById('resultContainer');
+    
+            // 加入淡入動畫效果
+            resultContainer.style.opacity = "0";
+            resultContainer.classList.remove('hidden');
+    
+            // ... 原有的資料填充邏輯 ...
+
+            // 觸發漸顯
+            setTimeout(() => {
+            resultContainer.style.transition = "opacity 0.5s ease-in-out";
+            resultContainer.style.opacity = "1";
+            }, 10);
+    }
+
             //簡化連結邏輯，確保 100% 導向正確位置
             const urlBtn = document.getElementById('legoUrl');
             urlBtn.href = data.rebrickable_url || `https://rebrickable.com/search/?q=${data.set_num}`;
