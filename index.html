@@ -6,11 +6,12 @@
     <title>LEGO BrickFinder | 樂高型號查詢</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .lego-red { background-color: #d11013; }
+        /* === 品牌核心與基礎樣式 === */
+        .lego-red { background-color: #d11013; } /* 樂高經典紅 */
         .card-shadow { box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .btn-loading { opacity: 0.7; pointer-events: none; }
+        .btn-loading { opacity: 0.7; pointer-events: none; } /* 阻擋載入中的重複點擊 */
         
-        /* 愛心跳動動畫 */
+        /* === 微動效：愛心跳動動畫 (收藏點擊回饋) === */
         @keyframes heartBeat {
             0% { transform: scale(1); }
             14% { transform: scale(1.3); }
@@ -23,7 +24,7 @@
             display: inline-block;
         }
 
-        /* 收藏卡片滑入動畫 */
+        /* === 微動效：收藏卡片滑入與懸停放大 === */
         @keyframes fadeInUp {
             from {
                 opacity: 0;
@@ -44,6 +45,7 @@
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
         }
 
+        /* === 微動效：歷史標籤懸停變色 === */
         .history-tag {
             cursor: pointer;
             transition: all 0.2s ease;
@@ -123,48 +125,63 @@
     </section>
 
     <script>
-        const API_KEY = '8cbdfafeaae44206585e06909cf319fc';
-        let currentLegoData = null;
+        // === 全域變數與環境設定 ===
+        const API_KEY = '8cbdfafeaae44206585e06909cf319fc'; // Rebrickable API 憑證
+        let currentLegoData = null;                         // 暫存當前搜尋成功的樂高資料物件
 
+        // 頁面初始化：讀取 LocalStorage 快取並渲染畫面
         window.onload = () => {
             displayHistory();
             displayCollection();
         };
 
+        /**
+         * 主功能：發送 API 查詢樂高型號
+         * @param {string|null} targetId - 選填。若由歷史紀錄或收藏點擊觸發，則直接傳入型號
+         */
         async function searchLego(targetId = null) {
             let id = targetId || document.getElementById('searchInput').value.trim();
-            if (targetId) document.getElementById('searchInput').value = targetId;
+            if (targetId) document.getElementById('searchInput').value = targetId; // 反填回輸入框
             
             const status = document.getElementById('statusMsg');
             const result = document.getElementById('resultContainer');
             const btn = document.getElementById('searchBtn');
             
             if (!id) return;
+            // Rebrickable API 的盒組後綴規範 (例如：10333 必須轉換為 10333-1)
             const formattedId = id.includes('-') ? id : `${id}-1`;
 
+            // UI 狀態重設：切換至讀取中狀態
             status.classList.add('hidden');
             btn.innerText = "搜尋中...";
             btn.classList.add('btn-loading');
 
             try {
+                // 非同步發送請求，並帶上驗證 Header
                 const response = await fetch(`https://rebrickable.com/api/v3/lego/sets/${formattedId}/`, {
                     headers: { 'Authorization': `key ${API_KEY}` }
                 });
                 if (!response.ok) throw new Error("找不到該型號。");
 
                 currentLegoData = await response.json();
-                saveToHistory(id);
-                displayResult(currentLegoData);
+                saveToHistory(id);          // 儲存至搜尋紀錄
+                displayResult(currentLegoData); // 渲染主畫面
             } catch (err) {
+                // 錯誤處理：顯示錯誤訊息並隱藏結果圖層
                 status.innerText = err.message;
                 status.classList.remove('hidden');
                 result.classList.add('hidden');
             } finally {
+                // UI 狀態還原
                 btn.innerText = "查詢";
                 btn.classList.remove('btn-loading');
             }
         }
 
+        /**
+         * 渲染搜尋結果資料至 DOM
+         * @param {Object} data - Rebrickable 回傳的盒組資料
+         */
         function displayResult(data) {
             const resultContainer = document.getElementById('resultContainer');
             document.getElementById('legoName').innerText = data.name;
@@ -174,8 +191,10 @@
             document.getElementById('legoImg').src = data.set_img_url || 'https://via.placeholder.com/600x400';
             document.getElementById('legoUrl').href = data.rebrickable_url;
 
+            //同步更新愛心狀態
             updateHeartUI(data.set_num);
 
+            // 淡入動畫效果觸發 (利用 setTimeout 確保瀏覽器有時間反應 class 變化)
             resultContainer.classList.remove('hidden');
             resultContainer.style.opacity = "0";
             setTimeout(() => {
@@ -183,9 +202,14 @@
                 resultContainer.style.opacity = "1";
             }, 10);
 
+            // 由於主題名稱不在同支 API，需額外再查一次 Theme API
             fetchTheme(data.theme_id);
         }
 
+        /**
+         * 根據 Theme ID 查詢樂高系列名稱 (如：Icons, Star Wars)
+         * @param {number} themeId 
+         */
         async function fetchTheme(themeId) {
             const themeSpan = document.getElementById('legoTheme');
             try {
@@ -197,6 +221,9 @@
             } catch { themeSpan.innerText = "未知系列"; }
         }
 
+        /**
+         * 切換收藏狀態 (新增/移除) 並同步至 LocalStorage
+         */
         function toggleFavorite() {
             if (!currentLegoData) return;
             let collection = JSON.parse(localStorage.getItem('legoCollection') || '[]');
@@ -204,29 +231,40 @@
             const btn = document.getElementById('favoriteBtn');
 
             if (index === -1) {
+                // 狀態 A: 不存在於收藏清單內 -> 執行新增
                 collection.push({
                     set_num: currentLegoData.set_num,
                     name: currentLegoData.name,
                     img: currentLegoData.set_img_url,
                     year: currentLegoData.year
                 });
+                // 觸發愛心跳動的 CSS 動效
                 btn.classList.add('heart-active');
                 setTimeout(() => btn.classList.remove('heart-active'), 800);
             } else {
+                // 狀態 B: 已存在於收藏清單內 -> 執行移除
                 collection.splice(index, 1);
             }
 
+            // 更新 LocalStorage 緩存與重繪 UI
             localStorage.setItem('legoCollection', JSON.stringify(collection));
             updateHeartUI(currentLegoData.set_num);
             displayCollection();
         }
 
+        /**
+         * 更新當前主要結果卡片上的愛心圖示 (紅心/白心)
+         * @param {string} setNum 
+         */
         function updateHeartUI(setNum) {
             const collection = JSON.parse(localStorage.getItem('legoCollection') || '[]');
             const isFav = collection.some(item => item.set_num === setNum);
             document.getElementById('favoriteBtn').innerText = isFav ? "❤️" : "🤍";
         }
 
+        /**
+         * 讀取並渲染「我的收藏清單」區塊
+         */
         function displayCollection() {
             const grid = document.getElementById('collectionGrid');
             const emptyMsg = document.getElementById('emptyMsg');
@@ -238,6 +276,7 @@
                 return;
             }
 
+            // 隱藏空提示，動態生成收藏卡片，並為每個卡片加上交錯的動畫延遲(stagger effect)
             emptyMsg.classList.add('hidden');
             grid.innerHTML = collection.map((item, index) => `
                 <div class="collection-card bg-white p-3 rounded-xl shadow-sm border border-gray-100 cursor-pointer" 
@@ -252,14 +291,23 @@
             `).join('');
         }
 
-        // --- 搜尋紀錄與清除功能 ---
+        // === 搜尋紀錄與清除功能 ===
+
+        /**
+         * 儲存最近搜尋型號 (限制最多存 5 筆，且不重複)
+         * @param {string} id 
+         */
         function saveToHistory(id) {
             let history = JSON.parse(localStorage.getItem('legoHistory') || '[]');
+            // 過濾掉重複的，將最新的推到最前面，並切出前5筆
             history = [id, ...history.filter(i => i !== id)].slice(0, 5);
             localStorage.setItem('legoHistory', JSON.stringify(history));
             displayHistory();
         }
 
+        /**
+         * 讀取並渲染「最近搜尋」標籤
+         */
         function displayHistory() {
             const section = document.getElementById('historySection');
             const container = document.getElementById('historyContainer');
@@ -272,6 +320,7 @@
 
             section.classList.remove('hidden');
             container.innerHTML = '';
+            // 動態建立 DOM 節點並綁定點擊事件
             history.forEach(id => {
                 const tag = document.createElement('span');
                 tag.className = "history-tag bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm font-medium border border-gray-300";
@@ -281,6 +330,9 @@
             });
         }
 
+        /**
+         * 清除所有本地搜尋紀錄
+         */
         function clearHistory() {
             if (confirm("確定要清除所有搜尋紀錄嗎？")) {
                 localStorage.removeItem('legoHistory');
@@ -288,6 +340,7 @@
             }
         }
 
+        // 綁定鍵盤事件：在輸入框按下 Enter 鍵直接觸發搜尋
         document.getElementById('searchInput').addEventListener('keypress', (e) => e.key === 'Enter' && searchLego());
     </script>
 </body>
