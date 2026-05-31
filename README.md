@@ -13,15 +13,15 @@
 
 ## 🛠️ 技術堆疊 (Tech Stack)
 
-- **Front-End**: HTML5, JavaScript (ES6+, Async/Await), Tailwind CSS
-- **Back-End / Scripting**: Python (資料分析/預處理腳本)
+- **前端(FrontEnd)**: HTML5, JavaScript (ES6+, Async/Await), Tailwind CSS
+- **後端(BackEnd / Scripting)**: Python (資料分析/預處理腳本)
 - **Data Source**: Rebrickable API v3
 
 ---
 
 ## 💻 負責內容與技術實現
 
-在此專案中，獨立負責從 API 對接、前端介面開發到錯誤處理的完整流程：
+此專案中，獨立負責從 API 對接、前端介面開發到錯誤處理的完整流程：
 
 ### 1. 核心 API 串接與資料預處理
 - 使用 JavaScript `fetch` 非同步架構（Async/Await）串接 Rebrickable 盒組與主題（Themes）API。
@@ -42,7 +42,7 @@
 
 ---
 
-## 📦 檔案結構說明
+## 📦 專案結構
 
 ```text
 ├── index.html          # 前端核心頁面 (包含 HTML 結構、Tailwind 樣式與 JS 邏輯)
