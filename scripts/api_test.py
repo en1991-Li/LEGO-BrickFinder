@@ -8,12 +8,19 @@ Date: 2026
 """
 
 import os
+import sys
 import json
 import requests
 
 # === 全域設定 ===
-# 建議實務上可改用 os.getenv('REBRICKABLE_API_KEY') 從環境變數讀取
-API_KEY = '8cbdfafeaae44206585e06909cf319fc' 
+# 🔒 安全優化：從環境變數讀取 API Key，不再硬編碼在程式碼中
+API_KEY = os.getenv('REBRICKABLE_API_KEY')
+
+if not API_KEY:
+    print("❌ 錯誤: 找不到環境變數 'REBRICKABLE_API_KEY'。")
+    print("💡 請先在終端機設定環境變數，例如: export REBRICKABLE_API_KEY='你的金鑰'")
+    sys.exit(1)
+
 BASE_URL = 'https://rebrickable.com/api/v3/lego'
 
 # 設定請求表頭 (Request Headers)
